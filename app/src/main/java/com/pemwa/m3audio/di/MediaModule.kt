@@ -52,7 +52,7 @@ object MediaModule {
         @ApplicationContext context: Context,
         player: ExoPlayer
     ): M3AudioNotificationManager = M3AudioNotificationManager(
-        context = context,
+        applicationContext = context,
         exoPlayer = player
     )
 

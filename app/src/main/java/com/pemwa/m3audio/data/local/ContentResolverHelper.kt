@@ -12,7 +12,7 @@ import javax.inject.Inject
 import com.pemwa.m3audio.data.local.model.Audio
 
 class ContentResolverHelper @Inject
-constructor(@ApplicationContext val context: Context) {
+constructor(@ApplicationContext val applicationContext: Context) {
     private var mCursor: Cursor? = null
 
     private val projection: Array<String> = arrayOf(
@@ -38,7 +38,7 @@ constructor(@ApplicationContext val context: Context) {
     private fun getCursorData(): MutableList<Audio> {
         val audioList = mutableListOf<Audio>()
 
-        mCursor = context.contentResolver.query(
+        mCursor = applicationContext.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             projection,
             selectionClause,
@@ -47,43 +47,31 @@ constructor(@ApplicationContext val context: Context) {
         )
 
         mCursor?.use { cursor ->
-            val idColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns._ID)
-            val displayNameColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DISPLAY_NAME)
-            val artistColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ARTIST)
-            val dataColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA)
-            val durationColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION)
-            val titleColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.TITLE)
-
-            cursor.apply {
-                if (count == 0) {
-                    Log.e("Cursor", "getCursorData: Cursor is Empty")
-                } else {
-                    while (cursor.moveToNext()) {
-                        val displayName = getString(displayNameColumn)
-                        val id = getLong(idColumn)
-                        val artist = getString(artistColumn)
-                        val data = getString(dataColumn)
-                        val duration = getInt(durationColumn)
-                        val title = getString(titleColumn)
-                        val uri = ContentUris.withAppendedId(
-                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                            id
-                        )
-
-                        audioList += Audio(
-                            uri, displayName, id, artist, data, duration, title
-                        )
-                    }
+            if (cursor.count == 0) {
+                Log.d("Cursor", "No music files found.")
+            } else {
+                while (cursor.moveToNext()) {
+                    audioList += cursor.toAudio()
                 }
             }
         }
 
         return audioList
     }
+
+    private fun Cursor.toAudio(): Audio {
+        val id = getLong(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns._ID))
+        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+
+        return Audio(
+            uri = uri,
+            displayName = getString(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DISPLAY_NAME)),
+            id = id,
+            artist = getString(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ARTIST)),
+            data = getString(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA)),
+            duration = getInt(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION)),
+            title = getString(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.TITLE))
+        )
+    }
+
 }

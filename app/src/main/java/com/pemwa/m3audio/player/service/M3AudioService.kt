@@ -2,8 +2,10 @@ package com.pemwa.m3audio.player.service
 
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.pemwa.m3audio.player.notification.M3AudioNotificationManager
@@ -18,7 +20,7 @@ class M3AudioService: MediaSessionService() {
     @Inject
     lateinit var notificationManager: M3AudioNotificationManager
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @OptIn(UnstableApi::class)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         notificationManager.startNotificationService(
             mediaSessionService = this,

@@ -4,9 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
-import androidx.annotation.OptIn
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.media3.common.util.UnstableApi
@@ -22,44 +19,49 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class M3AudioNotificationManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @ApplicationContext private val applicationContext: Context,
     private val exoPlayer: ExoPlayer,
 ) {
+    private val notificationManager: NotificationManagerCompat =
+        NotificationManagerCompat.from(applicationContext)
 
     init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel()
-        }
+        createNotificationChannel()
     }
 
-    private val notificationManager: NotificationManagerCompat =
-        NotificationManagerCompat.from(context)
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun createNotificationChannel() {
-        val notificationChannel = NotificationChannel(
-            PLAYBACK_NOTIFICATION_CHANNEL_ID,
-            PLAYBACK_NOTIFICATION_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_LOW
-        )
-
-        notificationManager.createNotificationChannel(notificationChannel)
+    @UnstableApi
+    fun startNotificationService(
+        mediaSessionService: MediaSessionService,
+        mediaSession: MediaSession,
+    ) {
+        buildNotification(mediaSession)
+        startForeGroundNotificationService(mediaSessionService)
     }
 
-    @OptIn(UnstableApi::class)
+    private fun startForeGroundNotificationService(mediaSessionService: MediaSessionService) {
+        val notification = Notification.Builder(applicationContext, PLAYBACK_NOTIFICATION_CHANNEL_ID)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .build()
+        mediaSessionService.startForeground(PLAYBACK_NOTIFICATION_ID, notification)
+    }
+
+    @UnstableApi
     private fun buildNotification(mediaSession: MediaSession) {
         PlayerNotificationManager.Builder(
-            context,
+            applicationContext,
             PLAYBACK_NOTIFICATION_ID,
             PLAYBACK_NOTIFICATION_CHANNEL_ID
-        ).setMediaDescriptionAdapter(M3AudioNotificationAdapter(
-            context= context,
-            pendingIntent = mediaSession.sessionActivity
-        ))
+        )
+            .setMediaDescriptionAdapter(
+                M3AudioNotificationAdapter(
+                    context = applicationContext,
+                    pendingIntent = mediaSession.sessionActivity
+                )
+            )
             .setSmallIconResourceId(R.drawable.ic_microphone)
             .build()
             .also {
-                it.setMediaSessionToken(mediaSession.platformToken)
+//                it.setMediaSessionToken(mediaSession.sessionCompatToken)
                 it.setUseFastForwardActionInCompactView(true)
                 it.setUseRewindActionInCompactView(true)
                 it.setUseNextActionInCompactView(true)
@@ -68,27 +70,12 @@ class M3AudioNotificationManager @Inject constructor(
             }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun startForeGroundNotificationService(
-        mediaSessionService: MediaSessionService
-    ) {
-        val notification = Notification.Builder(
-            context,
-            PLAYBACK_NOTIFICATION_CHANNEL_ID
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            PLAYBACK_NOTIFICATION_CHANNEL_ID,
+            PLAYBACK_NOTIFICATION_CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
         )
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .build()
-
-        mediaSessionService.startForeground(PLAYBACK_NOTIFICATION_ID, notification)
-
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun startNotificationService(
-        mediaSessionService: MediaSessionService,
-        mediaSession: MediaSession
-    ) {
-        buildNotification(mediaSession = mediaSession)
-        startForeGroundNotificationService(mediaSessionService)
+        notificationManager.createNotificationChannel(channel)
     }
 }

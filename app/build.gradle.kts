@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.pemwa.m3audio"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -39,6 +39,9 @@ android {
     buildFeatures {
         compose = true
     }
+    hilt {
+        enableAggregatingTask = false
+    }
 }
 
 dependencies {
@@ -61,7 +64,8 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation (libs.androidx.material.icons.extended)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Media Player
     implementation(libs.androidx.media3.datasource.okhttp)
@@ -72,7 +76,7 @@ dependencies {
 
     // Glide
     implementation(libs.glide)
-    implementation (libs.accompanist.permissions)
+    implementation(libs.accompanist.permissions)
 
     // Dagger - Hilt
     implementation(libs.hilt.android)
@@ -82,4 +86,8 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+
+//    implementation("com.squareup:javapoet:1.13.0") { // Or the specific version Hilt 2.51.1 requires
+//        isForce = true
+//    }
 }

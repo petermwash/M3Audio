@@ -32,6 +32,10 @@ class M3AudioServiceHandler @Inject constructor(
 
     private var progressJob: Job? = null
 
+    init {
+        exoPlayer.addListener(this)
+    }
+
     fun addMediaItem(mediaItem: MediaItem) {
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
@@ -90,7 +94,7 @@ class M3AudioServiceHandler @Inject constructor(
         _audioState.value = M3AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
 
         if (isPlaying) {
-            launch(Dispatchers.IO) {
+            launch(Dispatchers.Main) {
                 startProgressUpdate()
             }
         } else {
