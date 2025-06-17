@@ -3,9 +3,9 @@ package com.pemwa.m3audio.player.service
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.pemwa.m3audio.data.local.M3AudioPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -21,7 +21,8 @@ import javax.inject.Inject
  * It handles Playback events, state management and progress updates
  */
 class M3AudioServiceHandler @Inject constructor(
-    private val exoPlayer: ExoPlayer
+    private val exoPlayer: ExoPlayer,
+    private val playbackPreferences: M3AudioPreferences,
 ) : Player.Listener, CoroutineScope {
     private val job = SupervisorJob()
     override val coroutineContext = Dispatchers.IO + job
@@ -32,13 +33,37 @@ class M3AudioServiceHandler @Inject constructor(
 
     private var progressJob: Job? = null
 
+    private var currentPlayingIndex: Int = -1
+
     init {
         exoPlayer.addListener(this)
     }
 
-    fun addMediaItem(mediaItem: MediaItem) {
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        super.onMediaItemTransition(mediaItem, reason)
+        savePlaybackState(
+            currentPlayingIndex,
+            exoPlayer.currentPosition,
+            exoPlayer.isPlaying
+        )
+    }
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        savePlaybackState(
+            currentPlayingIndex,
+            exoPlayer.currentPosition,
+            isPlaying
+        )
+        _audioState.value = M3AudioState.Playing(true)
+        _audioState.value = M3AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
+
+        if (isPlaying) {
+            launch(Dispatchers.Main) {
+                startProgressUpdate()
+            }
+        } else {
+            stopProgressUpdate()
+        }
     }
 
     fun addMediaItemList(mediaItems: List<MediaItem>) {
@@ -52,6 +77,7 @@ class M3AudioServiceHandler @Inject constructor(
             stopProgressUpdate()
         } else {
             exoPlayer.play()
+            currentPlayingIndex = exoPlayer.currentMediaItemIndex
             _audioState.value = M3AudioState.Playing(true)
             startProgressUpdate()
         }
@@ -76,12 +102,12 @@ class M3AudioServiceHandler @Inject constructor(
 
             Player.STATE_ENDED -> {
                 stopProgressUpdate()
-                // Handle completion logic if needed
+                // Handle completion
             }
 
             Player.STATE_IDLE -> {
                 stopProgressUpdate()
-                // Handle idle logic if needed
+                // Handle idle logic
             }
 
             Player.STATE_READY -> _audioState.value = M3AudioState.Ready(exoPlayer.duration)
@@ -89,22 +115,9 @@ class M3AudioServiceHandler @Inject constructor(
         super.onPlaybackStateChanged(playbackState)
     }
 
-    override fun onIsPlayingChanged(isPlaying: Boolean) {
-        _audioState.value = M3AudioState.Playing(true)
-        _audioState.value = M3AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
-
-        if (isPlaying) {
-            launch(Dispatchers.Main) {
-                startProgressUpdate()
-            }
-        } else {
-            stopProgressUpdate()
-        }
-    }
-
     suspend fun onPlayerEvents(
         playerEvent: PlayerEvent,
-        selectedAudioIndex: Int = -1,
+        selectedAudioIndex: Int = currentPlayingIndex,
         seekPosition: Long = 0,
     ) {
         when (playerEvent) {
@@ -132,6 +145,11 @@ class M3AudioServiceHandler @Inject constructor(
                 )
         }
     }
+
+    private fun savePlaybackState(currentMediaItemIndex: Int, position: Long, isPlaying: Boolean) {
+        playbackPreferences.savePlaybackState(currentMediaItemIndex, position, isPlaying)
+    }
+
 
     fun release() {
         stopProgressUpdate()

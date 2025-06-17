@@ -8,6 +8,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
+import androidx.room.Room
+import com.pemwa.m3audio.data.local.M3AudioPreferences
+import com.pemwa.m3audio.data.local.room.AppDatabase
+import com.pemwa.m3audio.data.local.room.dao.AudioDao
 import com.pemwa.m3audio.player.notification.M3AudioNotificationManager
 import com.pemwa.m3audio.player.service.M3AudioServiceHandler
 import dagger.Module
@@ -58,6 +62,30 @@ object MediaModule {
 
     @Provides
     @Singleton
-    fun provideServiceHandler(exoPlayer: ExoPlayer): M3AudioServiceHandler =
-        M3AudioServiceHandler(exoPlayer = exoPlayer)
+    fun provideServiceHandler(exoPlayer: ExoPlayer, playbackPreferences: M3AudioPreferences): M3AudioServiceHandler =
+        M3AudioServiceHandler(exoPlayer = exoPlayer, playbackPreferences = playbackPreferences)
+
+    /**
+     * Provides the singleton Room database instance using the app context.
+     */
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext appContext: Context): AppDatabase =
+        Room.databaseBuilder(appContext, AppDatabase::class.java, "audio_db").build()
+
+    /**
+     * Provides the AudioDao instance from the database.
+     */
+    @Provides
+    @Singleton
+    fun provideAudioDao(db: AppDatabase): AudioDao = db.audioDao()
+
+    /**
+     * Provides the SharedPreferences instance using the app context.
+     */
+    @Provides
+    @Singleton
+    fun provideM3AudioPreferences(
+        @ApplicationContext context: Context
+    ): M3AudioPreferences = M3AudioPreferences(context)
 }

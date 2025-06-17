@@ -34,11 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import com.pemwa.m3audio.R
 import com.pemwa.m3audio.data.local.model.Audio
 import com.pemwa.m3audio.ui.theme.M3AudioTheme
 import kotlin.math.floor
@@ -95,7 +97,7 @@ fun AudioItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(8.dp)
             .clickable {
                 onItemClick(audio.id)
             }
@@ -104,6 +106,17 @@ fun AudioItem(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(8.dp)
         ) {
+            PlayerIcon(
+                modifier = Modifier
+                    .height(56.dp)
+                    .width(56.dp),
+                icon = Icons.Default.MusicNote,
+                backgroundColor = colorResource(id = R.color.purple_500),
+                borderStroke = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+            ) {}
             Column(
                 modifier = Modifier
                     .padding(8.dp)
@@ -120,7 +133,7 @@ fun AudioItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = audio.artist,
+                    text = "Artist: ${audio.artist}",
                     style = MaterialTheme.typography.bodySmall,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
@@ -146,10 +159,18 @@ fun AudioBottomBarPlayer(
     onNext: () -> Unit,
 ) {
     BottomAppBar(
+        modifier = Modifier.height(200.dp),
         content = {
             Column(
                 modifier = Modifier.padding(8.dp)
             ) {
+                ArtistInfo(
+                    audio = audio,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .height(56.dp)
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,10 +178,6 @@ fun AudioBottomBarPlayer(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ArtistInfo(
-                        audio = audio,
-                        modifier = Modifier.weight(1f)
-                    )
                     AudioPlayerController(
                         isAudioPlaying = isAudioPlaying,
                         onStart = onStart,
@@ -210,11 +227,14 @@ fun ArtistInfo(
     audio: Audio
 ) {
     Row(
-        modifier = modifier.padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier
+            .padding(4.dp)
+            .height(56.dp),
+        verticalAlignment = Alignment.Top
     ) {
         PlayerIcon(
             icon = Icons.Default.MusicNote,
+            backgroundColor = colorResource(id = R.color.purple_500),
             borderStroke = BorderStroke(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.onSurface
@@ -227,7 +247,6 @@ fun ArtistInfo(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
                 maxLines = 1
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -255,7 +274,7 @@ fun PlayerIcon(
     Surface(
         shape = CircleShape,
         border = borderStroke,
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .clickable { onClick() },
         contentColor = color,

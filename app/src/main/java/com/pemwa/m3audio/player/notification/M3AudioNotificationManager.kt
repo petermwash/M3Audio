@@ -39,9 +39,10 @@ class M3AudioNotificationManager @Inject constructor(
     }
 
     private fun startForeGroundNotificationService(mediaSessionService: MediaSessionService) {
-        val notification = Notification.Builder(applicationContext, PLAYBACK_NOTIFICATION_CHANNEL_ID)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .build()
+        val notification =
+            Notification.Builder(applicationContext, PLAYBACK_NOTIFICATION_CHANNEL_ID)
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .build()
         mediaSessionService.startForeground(PLAYBACK_NOTIFICATION_ID, notification)
     }
 
@@ -58,10 +59,9 @@ class M3AudioNotificationManager @Inject constructor(
                     pendingIntent = mediaSession.sessionActivity
                 )
             )
-            .setSmallIconResourceId(R.drawable.ic_microphone)
+            .setSmallIconResourceId(R.mipmap.ic_launcher)
             .build()
             .also {
-//                it.setMediaSessionToken(mediaSession.sessionCompatToken)
                 it.setUseFastForwardActionInCompactView(true)
                 it.setUseRewindActionInCompactView(true)
                 it.setUseNextActionInCompactView(true)

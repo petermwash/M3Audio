@@ -1,5 +1,6 @@
 package com.pemwa.m3audio.ui.audio
 
+import android.util.Log
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +12,7 @@ import androidx.lifecycle.viewmodel.compose.SavedStateHandleSaveableApi
 import androidx.lifecycle.viewmodel.compose.saveable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import com.pemwa.m3audio.data.local.M3AudioPreferences
 import com.pemwa.m3audio.data.repository.AudioRepository
 import com.pemwa.m3audio.player.service.M3AudioServiceHandler
 import com.pemwa.m3audio.data.local.model.Audio
@@ -35,11 +37,12 @@ private val audioDummy = Audio(
 class AudioViewModel @Inject constructor(
     private val audioServiceHandler: M3AudioServiceHandler,
     private val repository: AudioRepository,
+    private val playbackPreferences: M3AudioPreferences,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    var duration by savedStateHandle.saveable { mutableLongStateOf(0L) }
+    private var duration by savedStateHandle.saveable { mutableLongStateOf(0L) }
     var progress by savedStateHandle.saveable { mutableFloatStateOf(0f) }
-    var progressString by savedStateHandle.saveable { mutableStateOf("00:00") }
+    private var progressString by savedStateHandle.saveable { mutableStateOf("00:00") }
     var isPlaying by savedStateHandle.saveable { mutableStateOf(false) }
     var currentSelected by savedStateHandle.saveable { mutableStateOf(audioDummy) }
     var audioList by savedStateHandle.saveable { mutableStateOf(listOf<Audio>()) }
@@ -49,6 +52,9 @@ class AudioViewModel @Inject constructor(
 
     init {
         getAudioList()
+        Log.d("AudioViewModel: Save_Index", playbackPreferences.getSavedAudioIndex().toString())
+        Log.d("AudioViewModel: Save_Progress", playbackPreferences.getSavedProgress().toString())
+        Log.d("AudioViewModel: Save_State", playbackPreferences.isPlaying().toString())
     }
 
     init {
@@ -73,8 +79,8 @@ class AudioViewModel @Inject constructor(
 
     private fun getAudioList() {
         viewModelScope.launch {
-            val audio = repository.getAudioData()
-            audioList = audio
+            val audios = repository.getAudioData()
+            audioList = audios
             setMediaItems()
         }
     }

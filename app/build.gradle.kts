@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.gradle.plugin)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -41,6 +42,9 @@ android {
     }
     hilt {
         enableAggregatingTask = false
+    }
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
 }
 
@@ -87,7 +91,11 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
-//    implementation("com.squareup:javapoet:1.13.0") { // Or the specific version Hilt 2.51.1 requires
-//        isForce = true
-//    }
+    // Room DB
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
 }
