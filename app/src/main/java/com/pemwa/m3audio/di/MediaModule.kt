@@ -24,6 +24,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object MediaModule {
+
+    /**
+     * Provides configured [AudioAttributes] for media playback.
+     * Sets the content type and usage for handling audio focus and routing.
+     */
     @Provides
     @Singleton
     fun provideAudioAttributes(): AudioAttributes = AudioAttributes.Builder()
@@ -31,6 +36,14 @@ object MediaModule {
         .setUsage(C.USAGE_MEDIA)
         .build()
 
+    /**
+     * Provides a singleton [ExoPlayer] instance.
+     * It applies audio attributes, handles audio focus and noisy transitions (e.g. unplugging headphones),
+     * and uses the default track selector.
+     *
+     * @param context Application context
+     * @param audioAttributes Custom audio attributes provided for media playback
+     */
     @OptIn(UnstableApi::class)
     @Provides
     @Singleton
@@ -43,6 +56,12 @@ object MediaModule {
         .setTrackSelector(DefaultTrackSelector(context))
         .build()
 
+    /**
+     * Provides a [MediaSession] that links the system media controls with the ExoPlayer instance.
+     *
+     * @param context Application context
+     * @param player The ExoPlayer to attach to the session
+     */
     @Provides
     @Singleton
     fun provideMediaSession(
@@ -50,6 +69,13 @@ object MediaModule {
         player: ExoPlayer
     ): MediaSession = MediaSession.Builder(context, player).build()
 
+    /**
+     * Provides a [M3AudioNotificationManager] that handles the media playback notification UI.
+     *
+     * @param context Application context
+     * @param player ExoPlayer instance to track playback changes
+     */
+    @OptIn(UnstableApi::class)
     @Provides
     @Singleton
     fun provideNotificationManager(
@@ -60,13 +86,22 @@ object MediaModule {
         exoPlayer = player
     )
 
+    /**
+     * Provides the core service handler [M3AudioServiceHandler] for controlling playback,
+     * observing player state, and managing progress updates.
+     *
+     * @param exoPlayer The ExoPlayer instance
+     * @param playbackPreferences SharedPreferences wrapper for persisting playback state
+     */
     @Provides
     @Singleton
     fun provideServiceHandler(exoPlayer: ExoPlayer, playbackPreferences: M3AudioPreferences): M3AudioServiceHandler =
         M3AudioServiceHandler(exoPlayer = exoPlayer, playbackPreferences = playbackPreferences)
 
     /**
-     * Provides the singleton Room database instance using the app context.
+     * Provides the singleton Room [AppDatabase] instance.
+     *
+     * @param appContext Application context
      */
     @Provides
     @Singleton
@@ -74,14 +109,19 @@ object MediaModule {
         Room.databaseBuilder(appContext, AppDatabase::class.java, "audio_db").build()
 
     /**
-     * Provides the AudioDao instance from the database.
+     * Provides the [AudioDao] to access audio metadata stored in the local database.
+     *
+     * @param db The Room database instance
      */
     @Provides
     @Singleton
     fun provideAudioDao(db: AppDatabase): AudioDao = db.audioDao()
 
     /**
-     * Provides the SharedPreferences instance using the app context.
+     * Provides the [M3AudioPreferences] instance to persist playback state like
+     * current audio index, progress, and play state.
+     *
+     * @param context Application context
      */
     @Provides
     @Singleton

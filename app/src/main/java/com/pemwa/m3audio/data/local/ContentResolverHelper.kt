@@ -11,10 +11,21 @@ import javax.inject.Inject
 
 import com.pemwa.m3audio.data.local.model.Audio
 
+/**
+ * Helper class for querying local audio files from the Android MediaStore.
+ *
+ * This class uses the app's [ContentResolver] to fetch a list of music files stored
+ * on the device, returning them as a list of [Audio] data models.
+ *
+ * @property applicationContext the application context used to access the content resolver.
+ */
 class ContentResolverHelper @Inject
 constructor(@ApplicationContext val applicationContext: Context) {
     private var mCursor: Cursor? = null
 
+    /**
+     * Projection specifies the columns to retrieve from the MediaStore.
+     */
     private val projection: Array<String> = arrayOf(
         MediaStore.Audio.AudioColumns.DISPLAY_NAME,
         MediaStore.Audio.AudioColumns._ID,
@@ -24,17 +35,38 @@ constructor(@ApplicationContext val applicationContext: Context) {
         MediaStore.Audio.AudioColumns.TITLE,
     )
 
+    /**
+     * Selection clause to only include music files.
+     */
     private var selectionClause: String? =
         "${MediaStore.Audio.AudioColumns.IS_MUSIC} = ?"
+    /**
+     * Arguments for the selection clause.
+     */
     private var selectionArg = arrayOf("1")
 
+    /**
+     * Sort order for the query results (alphabetical by display name).
+     */
     private val sortOrder = "${MediaStore.Audio.AudioColumns.DISPLAY_NAME} ASC"
 
+    /**
+     * Returns a list of audio files from the device's external storage.
+     *
+     * This is called on a background thread due to the use of a content resolver query.
+     *
+     * @return a list of [Audio] objects representing music files.
+     */
     @WorkerThread
     fun getAudioData(): List<Audio> {
         return getCursorData()
     }
 
+    /**
+     * Performs the actual query using the [ContentResolver] and builds a list of [Audio] items.
+     *
+     * @return a mutable list of [Audio] items.
+     */
     private fun getCursorData(): MutableList<Audio> {
         val audioList = mutableListOf<Audio>()
 
@@ -59,6 +91,12 @@ constructor(@ApplicationContext val applicationContext: Context) {
         return audioList
     }
 
+    /**
+     * Extension function to convert a [Cursor] row to an [Audio] object.
+     *
+     * @receiver the current cursor row.
+     * @return an [Audio] object populated with metadata from the current row.
+     */
     private fun Cursor.toAudio(): Audio {
         val id = getLong(getColumnIndexOrThrow(MediaStore.Audio.AudioColumns._ID))
         val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)

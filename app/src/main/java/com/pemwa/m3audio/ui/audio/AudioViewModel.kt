@@ -32,6 +32,17 @@ private val audioDummy = Audio(
     "".toUri(), "", 0L, "", "", 0, ""
 )
 
+/**
+ * [AudioViewModel] manages UI-related audio playback state for a Composable-based audio player UI.
+ *
+ * It bridges user interaction with the [M3AudioServiceHandler] and observes playback state updates.
+ * It also handles media item construction and formats playback progress for display.
+ *
+ * @property audioServiceHandler The service handler responsible for controlling ExoPlayer playback.
+ * @property repository Repository used to fetch audio data.
+ * @property playbackPreferences Persistence utility for storing playback progress and index.
+ * @property savedStateHandle Used for saving/restoring UI state across configuration changes or process death.
+ */
 @HiltViewModel
 @OptIn(SavedStateHandleSaveableApi::class)
 class AudioViewModel @Inject constructor(
@@ -77,6 +88,9 @@ class AudioViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Fetches the audio list from the repository and sets it to the ExoPlayer instance.
+     */
     private fun getAudioList() {
         viewModelScope.launch {
             val audios = repository.getAudioData()
@@ -85,6 +99,9 @@ class AudioViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Constructs [MediaItem]s from the [audioList] and submits them to the [M3AudioServiceHandler].
+     */
     private fun setMediaItems() {
         audioList.map { audio ->
             MediaItem.Builder()
@@ -102,12 +119,18 @@ class AudioViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Updates [progress] and [progressString] from the current playback progress.
+     */
     private fun calculateProgress(currentProgress: Long) {
         progress =
             if (currentProgress > 0) ((currentProgress.toFloat() / duration.toFloat()) * 100f) else 0f
         progressString = formatDuration(currentProgress)
     }
 
+    /**
+     * Handles UI actions by mapping [UIEvents] to [PlayerEvent]s and dispatching them.
+     */
     fun onUiEvent(uiEvent: UIEvents) = viewModelScope.launch {
         when (uiEvent) {
             UIEvents.Backward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Backward)
@@ -119,6 +142,7 @@ class AudioViewModel @Inject constructor(
             )
 
             UIEvents.SeekToNext -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToNext)
+            UIEvents.SeekToPrevious -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToPrevious)
             is UIEvents.SelectedAudioChange -> audioServiceHandler.onPlayerEvents(
                 PlayerEvent.SelectedAudioChange,
                 selectedAudioIndex = uiEvent.index
@@ -136,6 +160,9 @@ class AudioViewModel @Inject constructor(
 
     }
 
+    /**
+     * Formats the duration from milliseconds to a MM:SS string.
+     */
     private fun formatDuration(currentProgress: Long): String {
         val minutes = TimeUnit.MINUTES.convert(currentProgress, TimeUnit.MILLISECONDS)
         val seconds = (minutes) - minutes * TimeUnit.SECONDS.convert(1, TimeUnit.MINUTES)
@@ -143,6 +170,9 @@ class AudioViewModel @Inject constructor(
         return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 
+    /**
+     * Called when ViewModel is about to be destroyed. Stops the player.
+     */
     override fun onCleared() {
         viewModelScope.launch {
             audioServiceHandler.onPlayerEvents(PlayerEvent.Stop)
@@ -151,16 +181,23 @@ class AudioViewModel @Inject constructor(
     }
 }
 
+/**
+ * Represents different states the audio UI can be in.
+ */
 sealed class UIState {
     data object Initial : UIState()
     data object Ready : UIState()
 }
 
+/**
+ * Describes events triggered by the user from the UI.
+ */
 sealed class UIEvents {
     data object PlayPause : UIEvents()
     data class SelectedAudioChange(val index: Int) : UIEvents()
     data class SeekTo(val position: Float) : UIEvents()
     data object SeekToNext : UIEvents()
+    data object SeekToPrevious : UIEvents()
     data object Backward : UIEvents()
     data object Forward : UIEvents()
     data class UpdateProgress(val newProgress: Float) : UIEvents()

@@ -94,9 +94,9 @@ val md_theme_dark_scrim = Color(0xFF000000)
 val seed = Color(0xFF243B16)
 
 val lightGradient = Brush.verticalGradient(
-    colors = listOf(Color(0xFFF3E5F5), Color(0xFFE1BEE7))
+    colors = listOf(Color(0xFED3E5F5), Color(0xFFE1BEE7))
 )
 
 val darkGradient = Brush.verticalGradient(
-    colors = listOf(Color(0xFF121212), Color(0xFF4A148C))
+    colors = listOf(Color(0xFEE1BEE7), Color(0xFE4A148C))
 )

@@ -16,9 +16,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * For managing audio playback using ExoPlayer
+ * Handles audio playback control, player state observation, and progress updates using ExoPlayer.
  *
- * It handles Playback events, state management and progress updates
+ * This class is the core logic handler for:
+ * - Listening to ExoPlayer events
+ * - Persisting and restoring playback state
+ * - Managing playback commands via [PlayerEvent]
+ * - Emitting player state updates via [M3AudioState]
+ * - Updating progress periodically while playing
+ *
+ * Dependencies:
+ * - [ExoPlayer] for media playback
+ * - [M3AudioPreferences] to persist current playing index, position and playback state
  */
 class M3AudioServiceHandler @Inject constructor(
     private val exoPlayer: ExoPlayer,
@@ -39,6 +48,10 @@ class M3AudioServiceHandler @Inject constructor(
         exoPlayer.addListener(this)
     }
 
+    /**
+     * Triggered when a new media item starts playing.
+     * Saves the current index, position, and playback state.
+     */
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super.onMediaItemTransition(mediaItem, reason)
         savePlaybackState(
@@ -48,6 +61,10 @@ class M3AudioServiceHandler @Inject constructor(
         )
     }
 
+    /**
+     * Updates state when play/pause changes.
+     * Triggers progress updates if playing.
+     */
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         savePlaybackState(
             currentPlayingIndex,
@@ -66,11 +83,17 @@ class M3AudioServiceHandler @Inject constructor(
         }
     }
 
+    /**
+     * Adds a list of media items to the player and prepares for playback.
+     */
     fun addMediaItemList(mediaItems: List<MediaItem>) {
         exoPlayer.setMediaItems(mediaItems)
         exoPlayer.prepare()
     }
 
+    /**
+     * Starts or pauses playback, and manages progress updates accordingly.
+     */
     private suspend fun playOrPause() {
         if (exoPlayer.isPlaying) {
             exoPlayer.pause()
@@ -83,6 +106,9 @@ class M3AudioServiceHandler @Inject constructor(
         }
     }
 
+    /**
+     * Continuously emits playback progress while media is playing.
+     */
     private suspend fun startProgressUpdate() = progressJob.run {
         while (true) {
             delay(500)
@@ -90,11 +116,17 @@ class M3AudioServiceHandler @Inject constructor(
         }
     }
 
+    /**
+     * Stops progress emission and sets state to not playing.
+     */
     private fun stopProgressUpdate() {
         progressJob?.cancel()
         _audioState.value = M3AudioState.Playing(false)
     }
 
+    /**
+     * Responds to changes in ExoPlayer’s internal playback state.
+     */
     override fun onPlaybackStateChanged(playbackState: Int) {
         when (playbackState) {
             ExoPlayer.STATE_BUFFERING -> _audioState.value =
@@ -115,6 +147,9 @@ class M3AudioServiceHandler @Inject constructor(
         super.onPlaybackStateChanged(playbackState)
     }
 
+    /**
+     * Handles various playback commands received from UI or external triggers.
+     */
     suspend fun onPlayerEvents(
         playerEvent: PlayerEvent,
         selectedAudioIndex: Int = currentPlayingIndex,
@@ -126,6 +161,7 @@ class M3AudioServiceHandler @Inject constructor(
             PlayerEvent.PlayPause -> playOrPause()
             PlayerEvent.SeekTo -> exoPlayer.seekTo(seekPosition)
             PlayerEvent.SeekToNext -> exoPlayer.seekToNext()
+            PlayerEvent.SeekToPrevious -> exoPlayer.seekToPrevious()
             PlayerEvent.SelectedAudioChange -> {
                 when (selectedAudioIndex) {
                     exoPlayer.currentMediaItemIndex -> playOrPause()
@@ -146,11 +182,17 @@ class M3AudioServiceHandler @Inject constructor(
         }
     }
 
+    /**
+     * Persists playback state using SharedPreferences.
+     */
     private fun savePlaybackState(currentMediaItemIndex: Int, position: Long, isPlaying: Boolean) {
         playbackPreferences.savePlaybackState(currentMediaItemIndex, position, isPlaying)
     }
 
 
+    /**
+     * Cancels progress updates and coroutine jobs to clean up resources.
+     */
     fun release() {
         stopProgressUpdate()
         job.cancel() // Cancel the whole scope to release resources
@@ -158,17 +200,24 @@ class M3AudioServiceHandler @Inject constructor(
 
 }
 
+/**
+ * Events that can be triggered to control audio playback.
+ */
 sealed class PlayerEvent {
     data object PlayPause : PlayerEvent()
     data object SelectedAudioChange : PlayerEvent()
     data object Backward : PlayerEvent()
     data object SeekToNext : PlayerEvent()
+    data object SeekToPrevious : PlayerEvent()
     data object Forward : PlayerEvent()
     data object SeekTo : PlayerEvent()
     data object Stop : PlayerEvent()
     data class UpdateProgress(val newProgress: Float) : PlayerEvent()
 }
 
+/**
+ * States emitted by the audio handler to describe playback status.
+ */
 sealed class M3AudioState {
     data object Initial : M3AudioState()
     data class Ready(val duration: Long) : M3AudioState()

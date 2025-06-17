@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.pemwa.m3audio.player.service.M3AudioService
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
                         onProgress = { viewModel.onUiEvent(UIEvents.SeekTo(it)) },
                         onStart = { viewModel.onUiEvent(UIEvents.PlayPause) },
                         onNext = { viewModel.onUiEvent(UIEvents.SeekToNext) },
+                        onPrevious = { viewModel.onUiEvent(UIEvents.SeekToPrevious) },
                         isAudioPlaying = viewModel.isPlaying,
                         currentPlaying = viewModel.currentSelected,
                         onItemClick = {
@@ -85,6 +87,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun startService() {
         if (!isServiceRunning) {
             val serviceIntent = Intent(this, M3AudioService::class.java)
